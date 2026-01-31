@@ -1,0 +1,10 @@
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f9f9f9; }
+header { background:red; color:white; text-align:center; padding:20px; font-size:28px; font-weight:bold; position:fixed; top:0; width:100%; z-index:10; }
+.form-container { max-width:450px; margin:100px auto 120px; padding:25px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
+h2 { text-align:center; color:#333; }
+label { display:block; margin:15px 0 5px; font-weight:bold; }
+input { width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:6px; font-size:16px; }
+button { background:#28a745; color:white; padding:14px; width:100%; border:none; border-radius:6px; font-size:18px; cursor:pointer; }
+button:hover { background:#218838; }
+footer { background:#000; color:#00ffff; text-align:center; padding:15px; font-size:14px; position:fixed; bottom:0; width:100%; line-height:1.6; }
+footer br { content:""; display:block; margin:5px 0; } /* Vertical spacing better */

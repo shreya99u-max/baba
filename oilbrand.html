@@ -1,23 +1,31 @@
-<!-- Same header/footer -->
-<div class="form-container">
-  <h2>Oil Brand & Model</h2>
-  <form id="brandForm">
-    <label>Brand Name:</label>
-    <input type="text" id="brand" required placeholder="e.g. Castrol, Motul">
-
-    <label>Model No / Type:</label>
-    <input type="text" id="model" required placeholder="e.g. 10W-30, 4T">
-
-    <button type="submit">Next</button>
-  </form>
-</div>
-
-<script src="script.js"></script>
-<script>
-  document.getElementById('brandForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    serviceData.brand = document.getElementById('brand').value;
-    serviceData.model = document.getElementById('model').value;
-    saveAndRedirect('panchar.html');
-  });
-</script>
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Oil Brand</title>
+    <style> /* Same styling as oil.html */ </style>
+</head>
+<body>
+    <header><h2>Step 3: Oil Brand Details</h2></header>
+    <div class="form-container">
+        <form id="brandForm">
+            <input type="text" id="brandName" placeholder="Brand Name" required>
+            <input type="text" id="modelNo" placeholder="Model No" required>
+            <button type="submit">Next</button>
+        </form>
+    </div>
+    <footer><p>© 2025 Bike Servicing System</p></footer>
+    <script>
+        document.getElementById('brandForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let data = {
+                brandName: document.getElementById('brandName').value,
+                modelNo: document.getElementById('modelNo').value,
+                step: 'oilbrand'
+            };
+            fetch('https://api.npoint.io/your-backend-endpoint', { method: 'POST', body: JSON.stringify(data) })
+                .then(() => window.location.href = 'panchar.html');
+        });
+    </script>
+</body>
+</html>

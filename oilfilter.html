@@ -1,0 +1,19 @@
+<!-- Same -->
+<div class="form-container">
+  <h2>Oil Filter Serial</h2>
+  <form id="filterForm">
+    <label>6 Digit Oil Filter No:</label>
+    <input type="text" id="oilfilterno" maxlength="6" required pattern="\d{6}" placeholder="e.g. 654321">
+
+    <button type="submit">Submit & Save</button>
+  </form>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('filterForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    serviceData.oilfilterno = document.getElementById('oilfilterno').value;
+    saveAndRedirect('admin.html');  // Last page pe redirect
+  });
+</script>

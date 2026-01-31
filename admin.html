@@ -8,61 +8,58 @@
   <style>
     @keyframes blink {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+      50% { opacity: 0.4; }
     }
     .blink-dot {
-      animation: blink 1.4s infinite;
+      animation: blink 1.2s infinite;
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen text-gray-800">
+<body class="bg-gray-50 min-h-screen text-gray-900">
 
   <!-- Header -->
   <header class="bg-white shadow-sm sticky top-0 z-10">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-center">
-      <h1 class="text-3xl font-bold tracking-tight">
+    <div class="max-w-5xl mx-auto px-4 py-5 flex items-center justify-center">
+      <h1 class="text-4xl font-black tracking-tight">
         <span class="text-red-600 blink-dot">•</span>LIVE
       </h1>
     </div>
   </header>
 
-  <!-- Main Content -->
+  <!-- Content -->
   <main class="max-w-5xl mx-auto px-3 py-6 sm:px-6 lg:px-8">
-    <div id="entries" class="space-y-4">
-      <!-- Entries will be inserted here -->
-    </div>
+    <div id="entries" class="space-y-5"></div>
 
-    <div id="empty" class="hidden text-center py-16 text-gray-500">
-      <p class="text-xl">No entries yet...</p>
-      <p class="mt-2">New servicing records will appear here live</p>
+    <div id="empty" class="hidden text-center py-20 text-gray-500">
+      <p class="text-2xl font-medium">कोई एंट्री अभी तक नहीं आई...</p>
+      <p class="mt-3">नई सर्विसिंग रिकॉर्ड यहाँ लाइव दिखेगी</p>
     </div>
   </main>
 
   <script>
-    // Color palette - will be selected consistently using mobile hash
+    // Fixed color list – same mobile = same color always
     const colors = [
-      'bg-pink-100 border-pink-300 text-pink-800',
-      'bg-gray-100 border-gray-400 text-gray-800',
-      'bg-blue-100 border-blue-300 text-blue-800',
-      'bg-green-100 border-green-300 text-green-800',
-      'bg-red-100 border-red-300 text-red-800',
-      'bg-yellow-100 border-yellow-300 text-yellow-800',
-      'bg-purple-100 border-purple-300 text-purple-800',
-      'bg-orange-100 border-orange-300 text-orange-800',
-      'bg-white border-gray-300 text-gray-800'
+      'bg-pink-50 border-pink-300 text-pink-900',
+      'bg-gray-50 border-gray-400 text-gray-900',
+      'bg-blue-50 border-blue-300 text-blue-900',
+      'bg-green-50 border-green-300 text-green-900',
+      'bg-red-50 border-red-300 text-red-900',
+      'bg-yellow-50 border-yellow-400 text-yellow-900',
+      'bg-purple-50 border-purple-300 text-purple-900',
+      'bg-orange-50 border-orange-300 text-orange-900',
+      'bg-white border-gray-300 text-gray-900'
     ];
 
-    // Simple hash function for consistent color per mobile
-    function getColorIndex(str) {
-      let hash = 0;
+    function simpleHash(str) {
+      let h = 0;
       for (let i = 0; i < str.length; i++) {
-        hash = (str.charCodeAt(i) + ((hash << 5) - hash)) & 0xFFFFFFFF;
+        h = (str.charCodeAt(i) + ((h << 5) - h)) | 0;
       }
-      return Math.abs(hash) % colors.length;
+      return Math.abs(h) % colors.length;
     }
 
-    // Format timestamp nicely
     function formatTime(iso) {
+      if (!iso) return '—';
       const d = new Date(iso);
       return d.toLocaleString('en-IN', {
         day: 'numeric', month: 'short', year: 'numeric',
@@ -70,86 +67,124 @@
       }).replace(',', '');
     }
 
-    async function fetchAndRender() {
+    function getStepLabel(type) {
+      const map = {
+        'step1':     '1. मोबाइल + यूजर आईडी',
+        'oil':       '2. ऑयल सीरियल',
+        'oilbrand':  '3. ऑयल ब्रांड + मॉडल',
+        'panchar':   '4. पंक्चर स्टाफ',
+        'oilfilter': '5. ऑयल फिल्टर नंबर'
+      };
+      return map[type] || type;
+    }
+
+    async function loadData() {
       try {
-        const res = await fetch('/api/submissions'); // ← change this to your real endpoint
-        if (!res.ok) throw new Error('Failed');
+        const res = await fetch('/api/submissions'); // अपना असली endpoint यहाँ डालना
+        if (!res.ok) throw new Error();
 
-        const data = await res.json();
+        let records = await res.json();
 
-        // Sort: newest first
-        data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        // Group by mobile
+        const groups = {};
+        records.forEach(r => {
+          const key = r.mobile || 'unknown';
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(r);
+        });
+
+        // Sort each group by time (newest first)
+        Object.values(groups).forEach(arr => {
+          arr.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        });
+
+        // Sort groups by the newest entry in each group
+        const sortedMobiles = Object.entries(groups)
+          .sort(([,a], [,b]) => new Date(b[0].timestamp) - new Date(a[0].timestamp))
+          .map(([mobile]) => mobile);
 
         const container = document.getElementById('entries');
         const empty = document.getElementById('empty');
         container.innerHTML = '';
 
-        if (data.length === 0) {
+        if (sortedMobiles.length === 0) {
           empty.classList.remove('hidden');
           return;
         }
 
         empty.classList.add('hidden');
 
-        data.forEach(item => {
-          const colorClass = colors[getColorIndex(item.mobile || 'unknown')];
+        sortedMobiles.forEach(mobile => {
+          const entries = groups[mobile];
+          const latest = entries[0]; // newest step
+          const colorClass = colors[simpleHash(mobile)];
 
-          const card = document.createElement('div');
-          card.className = `rounded-xl border-l-4 p-5 shadow-sm ${colorClass} transition-all duration-200 hover:shadow-md`;
-
-          let content = `
-            <div class="flex justify-between items-start mb-3">
-              <div>
-                <p class="font-bold text-lg">${item.mobile || '—'}</p>
-                <p class="text-xs text-gray-600 mt-0.5">${formatTime(item.timestamp)}</p>
+          let html = `
+            <div class="rounded-xl border shadow-sm overflow-hidden ${colorClass}">
+              <div class="px-5 py-4 border-b bg-white/60 flex justify-between items-center">
+                <div>
+                  <div class="text-xl font-bold">${mobile}</div>
+                  <div class="text-sm opacity-80 mt-0.5">
+                    ${formatTime(latest.timestamp)} • ${getStepLabel(latest.type)}
+                  </div>
+                </div>
+                <div class="text-sm font-medium px-3 py-1 rounded-full bg-white/70">
+                  ${entries.length} स्टेप
+                </div>
               </div>
-              <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white/60">
-                ${item.type || 'step'}
-              </span>
-            </div>
+
+              <div class="divide-y divide-gray-200/60">
           `;
 
-          // Show relevant fields based on type
-          if (item.type === 'step1') {
-            content += `
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div><span class="font-medium">User ID:</span> ${item.userid || '—'}</div>
-              </div>
+          entries.forEach(item => {
+            html += `
+              <div class="px-5 py-3.5 text-sm">
+                <div class="font-medium text-gray-800">${getStepLabel(item.type)}</div>
+                <div class="mt-1.5 grid grid-cols-2 gap-x-6 gap-y-1.5">
             `;
-          } else if (item.type === 'oil') {
-            content += `<div class="text-sm"><span class="font-medium">Oil Serial:</span> ${item.oil_serial || '—'}</div>`;
-          } else if (item.type === 'oilbrand') {
-            content += `
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div><span class="font-medium">Brand:</span> ${item.brand_name || '—'}</div>
-                <div><span class="font-medium">Model:</span> ${item.model_no || '—'}</div>
-              </div>
-            `;
-          } else if (item.type === 'panchar') {
-            content += `
-              <div class="grid grid-cols-2 gap-3 text-sm">
-                <div><span class="font-medium">Panchar:</span> ${item.panchar_name || '—'}</div>
-                <div><span class="font-medium">No:</span> ${item.panchar_no || '—'}</div>
-              </div>
-            `;
-          } else if (item.type === 'oilfilter') {
-            content += `<div class="text-sm"><span class="font-medium">Oil Filter No:</span> ${item.oilfilter_no || '—'}</div>`;
-          }
 
-          card.innerHTML = content;
-          container.appendChild(card);
+            if (item.type === 'step1') {
+              html += `
+                <div><span class="text-gray-600">User ID:</span> ${item.userid || '—'}</div>
+              `;
+            } else if (item.type === 'oil') {
+              html += `<div><span class="text-gray-600">Oil Serial:</span> ${item.oil_serial || '—'}</div>`;
+            } else if (item.type === 'oilbrand') {
+              html += `
+                <div><span class="text-gray-600">Brand:</span> ${item.brand_name || '—'}</div>
+                <div><span class="text-gray-600">Model:</span> ${item.model_no || '—'}</div>
+              `;
+            } else if (item.type === 'panchar') {
+              html += `
+                <div><span class="text-gray-600">Panchar Name:</span> ${item.panchar_name || '—'}</div>
+                <div><span class="text-gray-600">Panchar No:</span> ${item.panchar_no || '—'}</div>
+              `;
+            } else if (item.type === 'oilfilter') {
+              html += `<div><span class="text-gray-600">Oil Filter No:</span> ${item.oilfilter_no || '—'}</div>`;
+            }
+
+            html += `
+                  <div class="text-xs text-gray-500 col-span-2 mt-0.5">
+                    ${formatTime(item.timestamp)}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += `</div></div>`;
+          container.insertAdjacentHTML('beforeend', html);
         });
       } catch (err) {
-        console.error('Fetch error:', err);
-        // Optional: show message once
+        console.error(err);
       }
     }
 
-    // Load immediately
-    fetchAndRender();
+    // First load
+    loadData();
 
-    // Auto-refresh every 2 seconds
-    setInterval(fetchAndRender, 2000);
+    // Auto refresh every 2 seconds
+    setInterval(loadData, 2000);
   </script>
 </body>
 </html>

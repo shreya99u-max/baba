@@ -1,22 +1,84 @@
-<!-- Same header/footer -->
-<div class="form-container" style="max-width:900px;">
-  <h2>Admin - All Bike Service Records</h2>
-  <table border="1" style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
-    <thead style="background:#ddd;">
-      <tr>
-        <th>Mobile</th>
-        <th>User ID</th>
-        <th>Oil Serial</th>
-        <th>Brand / Model</th>
-        <th>Panchar Staff</th>
-        <th>Oil Filter No</th>
-      </tr>
-    </thead>
-    <tbody id="dataTable"></tbody>
-  </table>
-</div>
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin – Live Form Submissions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1d4ed8',
+            primarydark: '#1e40af',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="bg-gray-50 min-h-screen">
 
-<script src="script.js"></script>
-<script>
-  loadAdminData();  // On load data dikhao
-</script>
+  <!-- Header -->
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-gray-900">
+        <i class="fas fa-database mr-2 text-primary"></i>
+        Live Submissions
+      </h1>
+      <div class="flex items-center gap-4">
+        <button onclick="location.reload()" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primarydark transition text-sm font-medium">
+          <i class="fas fa-sync-alt mr-2"></i> Refresh
+        </button>
+        <!-- Future: add search, logout, etc. -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Stats row (optional – remove if not useful yet) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <p class="text-sm text-gray-500 uppercase tracking-wide">Total Entries</p>
+        <p class="text-3xl font-bold text-gray-900 mt-1">28</p> <!-- replace with real count -->
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <p class="text-sm text-gray-500 uppercase tracking-wide">Today</p>
+        <p class="text-3xl font-bold text-green-600 mt-1">11</p>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <p class="text-sm text-gray-500 uppercase tracking-wide">Last Hour</p>
+        <p class="text-3xl font-bold text-amber-600 mt-1">3</p>
+      </div>
+    </div>
+
+    <!-- Submissions List -->
+    <div class="space-y-6">
+
+      <!-- Example submission card – duplicate & replace content -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+        <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+                S
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">student-form</h3>
+                <p class="text-sm text-gray-500">Submitted • 31 Jan 2026, 00:34</p>
+              </div>
+            </div>
+            <span class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+              New
+            </span>
+          </div>
+        </div>
+
+        <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div>
+            <dt class="text-xs font-medium text-gray-500 uppercase">Mobile</dt>
+            <dd class="mt-

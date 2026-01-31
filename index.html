@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baba Service Centre - Bike Servicing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>Baba Service centre</header>
+
+<div class="form-container">
+  <h2>Customer / Staff Login</h2>
+  <form id="indexForm">
+    <label>Mobile No:</label>
+    <input type="tel" id="mobile" required pattern="[0-9]{10}" placeholder="10 digit number">
+
+    <label>User ID (Offline diya hua):</label>
+    <input type="text" id="userid" required>
+
+    <label>Password (Offline diya hua):</label>
+    <input type="password" id="pass" required>
+
+    <button type="submit">Next</button>
+  </form>
+</div>
+
+<footer>
+Baba Service centre<br>
+address<br>
+near<br>
+baba mandir<br>
+gate no<br>
+gate no 6<br>
+6 no gali<br>
+Bodagaon<br>
+Bihar<br>
+india<br>
+i love india ❤️🇮🇳
+</footer>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('indexForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    serviceData.mobile = document.getElementById('mobile').value;
+    serviceData.userid = document.getElementById('userid').value;
+    serviceData.pass = document.getElementById('pass').value; // Save but never show in admin
+    saveAndRedirect('oil.html');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!-- Same header/footer -->
+<div class="form-container">
+  <h2>Oil Brand & Model</h2>
+  <form id="brandForm">
+    <label>Brand Name:</label>
+    <input type="text" id="brand" required placeholder="e.g. Castrol, Motul">
+
+    <label>Model No / Type:</label>
+    <input type="text" id="model" required placeholder="e.g. 10W-30, 4T">
+
+    <button type="submit">Next</button>
+  </form>
+</div>
+
+<script src="script.js"></script>
+<script>
+  document.getElementById('brandForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    serviceData.brand = document.getElementById('brand').value;
+    serviceData.model = document.getElementById('model').value;
+    saveAndRedirect('panchar.html');
+  });
+</script>
